@@ -35,15 +35,20 @@ $(() => {
         const idData = $(this).attr('id').substring(16);
         getIndividualReservation(idData)
           .then(data => {
-            console.log(data);
             views_manager.show("updateReservation", data);
           });
       })
       $('.delete-button').on('click', function() {
         const idData = $(this).attr('id').substring(16);
-        console.log(`delete ${idData}`);
         deleteReservation(idData);
         $(this).closest('article').remove();
+      })
+      $('.add-review-button').on('click', function() {
+        const idData = $(this).attr('id').substring(11);
+        getIndividualReservation(idData)
+          .then(data => {
+            views_manager.show("newReview", data);
+          });
       })
     }
   }

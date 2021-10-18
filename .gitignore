@@ -1,2 +1,3 @@
 # MACOS file 
 .DS_Store
+node_modules/

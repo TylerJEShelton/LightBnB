@@ -44,7 +44,7 @@ module.exports = function(router, database) {
       .catch(e => {
         console.error(e);
         res.send(e)
-      });
+      })
   });
 
   router.post('/reservations/:reservation_id', (req, res) => {
@@ -56,6 +56,28 @@ module.exports = function(router, database) {
         res.send(e)
       });
   });
+
+  router.get('/reviews/:property_id', (req, res) => {
+    const propertyId = req.params.property_id;
+    database.getReviewsByProperty(propertyId)
+      .then(reviews => res.send(reviews))
+      .catch(e => {
+        console.error(e);
+        res.send(e)
+      });
+  });
+
+  router.post('/reviews/:reservation_id', (req, res) => {
+    database.addReview(req.body)
+      .then(reviews => {
+        res.send(reviews);
+      })
+      .catch(e => {
+        console.error(e);
+        res.send(e)
+      });
+  });
+
 
   router.post('/properties', (req, res) => {
     const userId = req.session.userId;
@@ -84,7 +106,6 @@ module.exports = function(router, database) {
   });
 
   router.delete('/reservations/:reservationId', (req, res) => {
-    console.log(req.params);
     const reservationId = req.params.reservationId;
     database.deleteReservation(reservationId);
   })

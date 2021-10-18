@@ -18,15 +18,17 @@ const pool = new Pool({
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithEmail = function(email) {
-  return Promise.resolve(pool
+  return pool
     .query(`SELECT * FROM users WHERE email = $1`, [email])
     .then((result) => {
-      if (users)
-        return result.rows[0];
+      if (!result.rows.length) {
+        return (null)
+      }
+      return result.rows[0];
     })
     .catch((err) => {
       console.log(err.message);
-    }));
+    });
 }
 exports.getUserWithEmail = getUserWithEmail;
 
@@ -38,15 +40,17 @@ exports.getUserWithEmail = getUserWithEmail;
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithId = function(id) {
-  return Promise.resolve(pool
+  return pool
     .query(`SELECT * FROM users WHERE id = $1`, [id])
     .then((result) => {
-      if (users)
-        return result.rows[0];
+      if (!result.rows.length) {
+        return (null)
+      }
+      return result.rows[0];
     })
     .catch((err) => {
       console.log(err.message);
-    }));
+    });
 }
 exports.getUserWithId = getUserWithId;
 
@@ -57,14 +61,17 @@ exports.getUserWithId = getUserWithId;
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser = function(user) {
-  return Promise.resolve(pool.
+  return pool.
     query('INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *', [user.name, user.email, user.password])
     .then((result) => {
+      if (!result.rows.length) {
+        return (null)
+      }
       return result.rows[0];
     })
     .catch((err) => {
       console.log(err.message);
-    }));
+    });
 }
 exports.addUser = addUser;
 
@@ -112,7 +119,7 @@ const getAllProperties = (options, limit = 10) => {
 
   // set up start of query
   let queryString = `
-  SELECT properties.*, AVG(property_reviews.rating) as average_rating
+  SELECT properties.*, AVG(property_reviews.rating) as average_rating, COUNT(property_reviews.rating) as review_count
   FROM properties
   LEFT JOIN property_reviews ON properties.id = property_id 
   `;
@@ -193,15 +200,13 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function(property) {
-
-  console.log(property);
-  queryParams = [
+  const queryParams = [
     property.owner_id,
     property.title,
     property.description,
     property.thumbnail_photo_url,
     property.cover_photo_url,
-    Number(property.cost_per_night) * 100,
+    property.cost_per_night,
     property.street,
     property.city,
     property.province,
@@ -212,7 +217,7 @@ const addProperty = function(property) {
     property.number_of_bedrooms
   ];
 
-  queryString = `
+  const queryString = `
   INSERT INTO properties 
    (owner_id, title, description, thumbnail_photo_url, cover_photo_url, cost_per_night, street, city, province, post_code, country, parking_spaces, number_of_bathrooms, number_of_bedrooms)
    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
@@ -222,7 +227,7 @@ const addProperty = function(property) {
   return pool.
     query(queryString, queryParams)
     .then((result) => {
-      return result.rows[0];
+      return result.rows;
     })
     .catch((err) => {
       console.log(err.message);
@@ -230,10 +235,10 @@ const addProperty = function(property) {
 }
 exports.addProperty = addProperty;
 
+/*
+ * Adds a reservation from a specific user to the database
+ */
 const addReservation = function(reservation) {
-  /*
-   * Adds a reservation from a specific user to the database
-   */
   return pool.query(`
     INSERT INTO reservations (start_date, end_date, property_id, guest_id)
     VALUES ($1, $2, $3, $4) RETURNING *;
@@ -275,7 +280,6 @@ exports.getUpcomingReservations = getUpcomingReservations;
 //
 const getIndividualReservation = function(reservationId) {
   const queryString = `SELECT * FROM reservations WHERE reservations.id = $1`;
-  console.log("Ind Res: ", reservationId);
   return pool
     .query(queryString, [reservationId])
     .then((result) => {
@@ -324,7 +328,6 @@ exports.updateReservation = updateReservation;
 //  Deletes an existing reservation
 //
 const deleteReservation = function(reservationId) {
-  console.log(reservationId);
   const queryParams = [reservationId];
   const queryString = `DELETE FROM reservations WHERE id = $1`;
   return pool.query(queryString, queryParams)
@@ -333,3 +336,37 @@ const deleteReservation = function(reservationId) {
 }
 
 exports.deleteReservation = deleteReservation;
+
+/*
+ *  get reviews by property
+ */
+const getReviewsByProperty = function(propertyId) {
+  const queryString = `
+    SELECT property_reviews.id, property_reviews.rating AS review_rating, property_reviews.message AS review_text, 
+    users.name, properties.title AS property_title, reservations.start_date, reservations.end_date
+    FROM property_reviews    
+    JOIN reservations ON reservations.id = property_reviews.reservation_id  
+    JOIN properties ON properties.id = property_reviews.property_id
+    JOIN users ON users.id = property_reviews.guest_id
+    WHERE properties.id = $1
+    ORDER BY reservations.start_date DESC;
+  `
+  const queryParams = [propertyId];
+  return pool.query(queryString, queryParams).then(res => res.rows)
+}
+
+exports.getReviewsByProperty = getReviewsByProperty;
+
+const addReview = function(review) {
+  const queryString = `
+    INSERT INTO property_reviews (guest_id, property_id, reservation_id, rating, message) 
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING *;
+  `;
+  const queryParams = [review.guest_id, review.property_id, review.reservation_id, parseInt(review.rating), review.message];
+  return pool.query(queryString, queryParams).then(res => {
+    return res.rows;
+  })
+}
+
+exports.addReview = addReview;

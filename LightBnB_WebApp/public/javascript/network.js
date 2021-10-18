@@ -1,5 +1,4 @@
 function getMyDetails() {
-  console.log("getMyDetails");
   return $.ajax({
     url: "/users/me",
   });
@@ -61,14 +60,14 @@ const submitReservation = function(data) {
   })
 }
 
-const getUpcomingReservations = function() {
+function getUpcomingReservations() {
   let url = "/api/reservations/upcoming";
   return $.ajax({
     url,
   });
 }
 
-const getIndividualReservation = function(reservationId) {
+function getIndividualReservation(reservationId) {
   let url = `/api/reservations/${reservationId}`;
   return $.ajax({
     url,
@@ -83,10 +82,24 @@ const updateReservation = function(data) {
   })
 }
 
-const deleteReservation = function(data) {
-  console.log(data);
+const getReviewsByProperty = function(propertyId) {
+  const url = `/api/reviews/${propertyId}`;
+  return $.ajax({
+    url,
+  })
+}
+
+const submitReview = function(data) {
+  return $.ajax({
+    method: "POST",
+    url: `/api/reviews/${data.reservation_id}`,
+    data,
+  })
+}
+
+const deleteReservation = function(reservationId) {
   return $.ajax({
     method: "DELETE",
-    url: `/api/reservations/${data}`
+    url: `/api/reservations/${reservationId}`
   })
 }
